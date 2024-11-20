@@ -10,7 +10,7 @@ display(coords)
 
 for i in len(coords.index):
     params = {
-            'key': '***REMOVED***',
+            'key': '',
             'size': '640x640',
             'location': str(coords['Latitude'][i]) + ',' + str(coords['Longitude'][i]),
             'heading': str((randint(0, 3) * 90) + randint(-15, 15)),
