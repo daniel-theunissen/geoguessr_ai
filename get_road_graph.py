@@ -2,7 +2,7 @@ import osmnx as ox
 
 ox.config(use_cache=True, log_console=True)
 # Define the area (the United States)
-place_name = "Rhode Island"
+place_name = "United States"
 
 # Download the road network for driving
 print("Downloading the US road network...")
