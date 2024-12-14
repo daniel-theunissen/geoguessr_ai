@@ -210,9 +210,15 @@ def predict_and_visualize_on_single_map(model, device, random_images):
     map_center = [0, 0]  # Initial map center, adjusted later based on first prediction
     m = None
     results = []
+    img_pd = pd.read_csv("identical_images.csv")
 
     for img_num in random_images:
-        image_path = f"images/street_view_{img_num}.jpg"
+
+        val_img = img_pd.iat[img_num, 0]
+        print(val_img)
+        val_img_num = int(val_img.split("_")[-1].split(".")[0])
+        print(val_img_num)
+        image_path = f"images/{val_img}"
 
         if not os.path.exists(image_path):
             print(f"Image {img_num} not found at {image_path}. Skipping...")
@@ -231,8 +237,8 @@ def predict_and_visualize_on_single_map(model, device, random_images):
 
         # Actual coordinates for comparison
         actual_coords = (
-            region_coords.loc[img_num - 1, "Latitude"],
-            region_coords.loc[img_num - 1, "Longitude"],
+            region_coords.loc[val_img_num - 1, "Latitude"],
+            region_coords.loc[val_img_num - 1, "Longitude"],
         )
 
         # Predict region index using the classification model
@@ -301,8 +307,8 @@ model2.load_state_dict(
 )  # Load trained model weights
 model2.to(device)
 
-# 14, 47, 51, 65
-img_num = 65
+# 14, 47, 51, 65, 79, 10026, 9328
+img_num = 9328
 image_path = f"images/street_view_{img_num}.jpg"
 input_image = Image.open(image_path).convert("RGB")
 
@@ -332,11 +338,12 @@ map_view.save("geolocation_prediction_two_models.html")  # Save to an HTML file
 
 
 # # Select 15 random images from the dataset
-# num_images = 15000  # Total number of images in the dataset
-# random_images = random.sample(range(1, num_images + 1), 15)
+# num_images = 1500  # Total number of images in the dataset
+# random_images = random.sample(range(1, num_images + 1), 5)
+
 
 # # Run predictions and visualize on a single map
-# results = predict_and_visualize_on_single_map(model, device, random_images)
+# results = predict_and_visualize_on_single_map(model2, device, random_images)
 
 # # Save results to a CSV file
 # results_df = pd.DataFrame(results)
