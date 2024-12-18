@@ -6,18 +6,20 @@ from torchvision.transforms import InterpolationMode
 import pandas as pd
 from model import GeoLocViT, GeoLocResNet
 from torchvision.models import wide_resnet50_2
+from torchvision.models import Wide_ResNet50_2_Weights
+from torchvision.models import ViT_B_32_Weights
 import random
 import os
 import numpy as np
 
 # Ensure reproducibility of random selection
-random.seed(546)
+random.seed(5678)
 
 # Load the region-to-coordinates mapping
 region_coords = pd.read_csv("clustered_coordinates_fix.csv")
 
 
-def preprocess_image(image):
+def preprocess_image(image, model_name):
     """
     Preprocess an image for the model.
     Args:
@@ -25,20 +27,16 @@ def preprocess_image(image):
     Returns:
         torch.Tensor: Preprocessed image tensor.
     """
-    transform = transforms.Compose(
-        [
-            transforms.Resize(224, interpolation=InterpolationMode.BICUBIC),
-            transforms.CenterCrop(224),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-        ]
-    )
+    if model_name == "vit":
+        transform = ViT_B_32_Weights.DEFAULT.transforms()
+    elif model_name == "wideres":
+        transform = Wide_ResNet50_2_Weights.DEFAULT.transforms()
 
     data = transform(image)
     return data.unsqueeze(0)  # Add batch dimension
 
 
-def predict_region(model, image, device):
+def predict_region(model, model_name, image, device):
     """
     Predict the region index for an image using the classification model.
     Args:
@@ -48,7 +46,7 @@ def predict_region(model, image, device):
     Returns:
         int: Predicted region index.
     """
-    image_tensor = preprocess_image(image).to(device)
+    image_tensor = preprocess_image(image, model_name).to(device)
     model.eval()  # Ensure model is in evaluation mode
     with torch.no_grad():
         output = model(image_tensor)  # Get region logits
@@ -210,7 +208,7 @@ def predict_and_visualize_on_single_map(model1, model2, device, random_images):
     map_center = [0, 0]  # Initial map center, adjusted later based on first prediction
     m = None
     results = []
-    img_pd = pd.read_csv("identical_images.csv")
+    img_pd = pd.read_csv("identical_images2.csv")
 
     for img_num in random_images:
 
@@ -237,13 +235,13 @@ def predict_and_visualize_on_single_map(model1, model2, device, random_images):
 
         # Actual coordinates for comparison
         actual_coords = (
-            region_coords.iat[val_img_num, 0],
-            region_coords.iat[val_img_num, 1],
+            region_coords.iat[val_img_num - 1, 0],
+            region_coords.iat[val_img_num - 1, 1],
         )
 
         # Predict region index using the classification model
-        predicted_region_index1 = predict_region(model1, input_image, device)
-        predicted_region_index2 = predict_region(model2, input_image, device)
+        predicted_region_index1 = predict_region(model1, "vit", input_image, device)
+        predicted_region_index2 = predict_region(model2, "wideres", input_image, device)
 
         # Get the predicted coordinates by mapping the region index
         predicted_coords1 = get_coordinates_from_region(predicted_region_index1)
@@ -311,7 +309,7 @@ def predict_and_visualize_on_single_map(model1, model2, device, random_images):
 # Load model and weights
 model1 = GeoLocViT(64)  # Initialize your model
 model1.load_state_dict(
-    torch.load("best_vit_geolocation.pth", weights_only=True)
+    torch.load("best_vit4_geolocation.pth", weights_only=True)
 )  # Load trained model weights
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model1.to(device)
@@ -319,12 +317,13 @@ model1.to(device)
 # Load model and weights
 model2 = GeoLocResNet(64)  # Initialize your model
 model2.load_state_dict(
-    torch.load("best_wideres_geolocation.pth", weights_only=True)
+    torch.load("best_wideres4_geolocation.pth", weights_only=True)
 )  # Load trained model weights
 model2.to(device)
 
-# # 14, 47, 51, 65, 79, 10026, 9238
-# img_num = 9238
+# 14, 47, 51, 65, 79, 10026, 9238
+# match for images/street_view_9201.jpg: (40.45835319565922, -79.88466099582267). Prediction: 40.26996006749173, -74.48697706387348
+# img_num = 4696
 # image_path = f"images/street_view_{img_num}.jpg"
 # input_image = Image.open(image_path).convert("RGB")
 
@@ -335,8 +334,8 @@ model2.to(device)
 # )
 
 # # Predict region index using the classification model
-# predicted_region_index1 = predict_region(model1, input_image, device)
-# predicted_region_index2 = predict_region(model2, input_image, device)
+# predicted_region_index1 = predict_region(model1, "vit", input_image, device)
+# predicted_region_index2 = predict_region(model2, "wideres", input_image, device)
 
 # # Get the predicted coordinates by mapping the region index
 # predicted_coords1 = get_coordinates_from_region(predicted_region_index1)
@@ -353,10 +352,11 @@ model2.to(device)
 # map_view.save("geolocation_prediction_two_models.html")  # Save to an HTML file
 
 
-# Select 15 random images from the dataset
-num_images = 1500  # Total number of images in the dataset
-random_images = random.sample(range(1, num_images + 1), 5)
+# Select 5 random images from the dataset
+# num_images = 1500  # Total number of images in the dataset
+# random_images = random.sample(range(1, num_images + 1), 5)
 
+random_images = [3, 6, 9, 13, 14]
 
 # Run predictions and visualize on a single map
 results = predict_and_visualize_on_single_map(model1, model2, device, random_images)

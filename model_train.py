@@ -52,8 +52,8 @@ if not torch.backends.mps.is_available():
         )
 device = torch.device("cuda")
 
-train_dataset = GeoLocationDataset("output/train", "wideres")
-val_dataset = GeoLocationDataset("output/val", "wideres")
+train_dataset = GeoLocationDataset("output2/train", "wideres")
+val_dataset = GeoLocationDataset("output2/val", "wideres")
 
 train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True, num_workers=4)
 val_loader = DataLoader(val_dataset, batch_size=32, shuffle=False, num_workers=4)
@@ -81,7 +81,7 @@ def train_model(
     best_model_wts = None
     best_val_loss = float("inf")
     best_val_acc = 0
-    results = {"train_loss": [], "val_loss": []}
+    results = {"train_loss": [], "val_loss": [], "train_acc": [], "val_acc": []}
 
     model.to(device)
     for epoch in range(num_epochs):
@@ -116,6 +116,7 @@ def train_model(
         train_loss /= len(train_loader.dataset)  # Average loss
         train_accuracy = correct_train / total_train  # Compute accuracy
         results["train_loss"].append(train_loss)
+        results["train_acc"].append(train_accuracy)
 
         # Validation phase
         model.eval()
@@ -139,6 +140,7 @@ def train_model(
         val_loss /= len(val_loader.dataset)
         val_accuracy = correct_val / total_val  # Compute accuracy
         results["val_loss"].append(val_loss)
+        results["val_acc"].append(val_accuracy)
 
         # Print stats
         print(f"Train Loss: {train_loss:.4f} | Train Accuracy: {train_accuracy:.4f}")
@@ -149,7 +151,7 @@ def train_model(
             best_val_acc = val_accuracy
             best_model_wts = model.state_dict()
             # Save the best model
-            torch.save(model.state_dict(), "best_wideres_geolocation.pth")
+            torch.save(model.state_dict(), "best_wideres4_geolocation.pth")
 
         # Step the scheduler
         scheduler.step()
@@ -175,17 +177,31 @@ best_model, training_results = train_model(
 )
 
 # Save the best model
-torch.save(best_model.state_dict(), "best_wideres_geolocation.pth")
+torch.save(best_model.state_dict(), "best_wideres4_geolocation.pth")
 
 
 def plot_training_results(results):
     plt.figure(figsize=(10, 5))
+
+    # Plot loss
+    plt.subplot(1, 2, 1)
     plt.plot(results["train_loss"], label="Train Loss")
     plt.plot(results["val_loss"], label="Validation Loss")
     plt.xlabel("Epochs")
     plt.ylabel("Loss")
     plt.title("Training and Validation Loss")
     plt.legend()
+
+    # Plot accuracy
+    plt.subplot(1, 2, 2)
+    plt.plot(results["train_acc"], label="Train Accuracy")
+    plt.plot(results["val_acc"], label="Validation Accuracy")
+    plt.xlabel("Epochs")
+    plt.ylabel("Accuracy")
+    plt.title("Training and Validation Accuracy")
+    plt.legend()
+
+    plt.tight_layout()
     plt.show()
 
 
